@@ -3,7 +3,7 @@
 import list from './restaurants_list.json';
 import info from './restaurants_info.csv';
 
-let client = algoliasearch('NOGZ8XVS9S', 'c849f645ef0df0f7a7c335551cfcc008');
+let client = algoliasearch('NOGZ8XVS9S', 'admin api key');
 let index = client.initIndex('restaurants');
 
 console.log(index)
