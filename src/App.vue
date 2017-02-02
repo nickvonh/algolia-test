@@ -9,15 +9,16 @@
                 <div class="filters" v-if="filters">
 
                     <!--CUISINE FILTER SECTION-->
-                    <div class="filter-group">
+                    <div class="filter-group ">
                         <div>
                             <h4>Cuisine/Food Type</h4>
-                            <ul class="filter-choices">
+                            <ul class="filter-choices cuisine-filter-choices" :ref="'expandCuisine'">
                                 <li v-for="(option, key) in filters.food_type" :ref="['food_type', key]" class="choice" :class="{active: activeFilters.food_type == key}" @click="refineFacet('food_type', key)">
                                     <span class="cuisine">{{key}}</span>
                                     <span class="cuisine-count">{{option}}</span>
                                 </li>
                             </ul>
+                            <div class="expand" @click="expandSelection('expandCuisine')">{{expandText}}</div>
                         </div>
                     </div>
 
@@ -128,6 +129,7 @@ export default {
                 stars_count: null,
                 payment_options: null
             },
+            filterExpanded: false,
             geo: null,
             results: null
         }
@@ -135,6 +137,9 @@ export default {
     computed : {
         hits(){
             return !!this.results ? this.results.hits : null
+        },
+        expandText(){
+            return !!this.filterExpanded ? 'show less -' : 'show more +'
         }
     },
     watch : {
@@ -144,19 +149,30 @@ export default {
     },
     methods : {
         refineFacet(facet, value){
-            this.activeFilters[facet] = value
-            algolia.helper.clearRefinements(facet)
-            if(facet !== 'stars_count'){
-                console.log(facet, value)
-                algolia.helper.toggleRefinement(facet, value).search()
+
+            if(this.activeFilters[facet] === value){
+                this.activeFilters[facet] = null
+                algolia.helper.clearRefinements(facet).search()
             }
             else{
-                console.log('stars', parseFloat(value))
-                algolia.helper.addNumericRefinement('stars_count', '>=', parseFloat(value)).search()
+                this.activeFilters[facet] = value
+                algolia.helper.clearRefinements(facet)
+
+                if(facet !== 'stars_count'){
+                    console.log(facet, value)
+                    algolia.helper.toggleRefinement(facet, value).search()
+                }
+                else{
+                    console.log('stars', parseFloat(value))
+                    algolia.helper.addNumericRefinement('stars_count', '>=', parseFloat(value)).search()
+                }
             }
+
+
         },
-        activeFacet(facet, value){
-            this.facets
+        expandSelection(ref, event){
+            $(this.$refs[ref]).toggleClass('expanded')
+            this.filterExpanded = !this.filterExpanded
         }
     }
 }
@@ -230,8 +246,19 @@ export default {
                         list-style none
                         font-size 13px
                         font-weight 200
-                        overflow-y scroll
-                        height 160px
+                        +above(700px)
+                            &.cuisine-filter-choices
+                                height 160px
+                                overflow-y hidden
+                                &.expanded
+                                    height 400px !important
+                                    overflow-y scroll
+                        +below(700px)
+                            &.cuisine-filter-choices
+                                height 160px
+                                overflow-y scroll
+                                &.expanded
+                                    overflow-y scroll
                         .choice
                             width 90%
                             margin 5px 0
@@ -253,6 +280,14 @@ export default {
                                 text-overflow ellipsis
                                 text-align right
                                 color rgba(112,112,112,.6)
+                    .expand
+                        font-size 10px
+                        text-align center
+                        color rgba(112,112,112,0.6)
+                        margin-top 10px
+                        cursor pointer
+                        +below(700px)
+                            display none
             .results
                 cell(2,3)
                 height calc(100% - 25px)
