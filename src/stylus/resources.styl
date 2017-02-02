@@ -1,0 +1,21 @@
+//stylus library
+@import '../../node_modules/nib/index.styl'
+//simple media queries for stylus
+@import '../../node_modules/rupture/rupture/index.styl'
+//flexbox grid plugin
+@import '../../node_modules/s-grid/s-grid-settings.styl'
+@import '../../node_modules/s-grid/s-grid-functions.styl'
+
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800')
+
+
+//flexbox polyfill
+@import 'flex.styl'
+
+body
+    font-family 'Open Sans', sans-serif
+
+center()
+    flexbox()
+    justify-content(center)
+    align-items(center)
