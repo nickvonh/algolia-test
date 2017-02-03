@@ -32,7 +32,7 @@
                         <div>
                             <h4>Payment Options</h4>
                             <ul class="filter-choices">
-                                <li v-for="(option, key) in filters.payment_options" :ref="['payment_options', key]" class="choice" :class="{active: activeFilters.payment_options == key}" @click="refineFacet('payment_options', key)">
+                                <li v-for="key in payment_types" :ref="['payment_options', key]" class="choice" :class="{active: activeFilters.payment_options == key}" @click="refineFacet('payment_options', key)">
                                     <span class="filterKey">
                                         {{key}}
                                     </span>
@@ -41,7 +41,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="results" v-if="results">
+                <div class="results" v-if="results" @scroll="scrollCheck($event)">
                     <p class="results-info">
                         {{results.nbHits}} results <span class="time">in {{results.processingTimeMS / 1000}} seconds</span>
                     </p>
@@ -62,6 +62,7 @@
                             </div>
                         </li>
                     </ul>
+                    <div class="expand">loading more...</div>
                 </div>
             </div>
         </div>
@@ -80,12 +81,21 @@ export default {
         let that = this
 
         algolia.helper.on('result', (content) => {
-            that.results = content
-            if(!!that.firstLoad){
-                console.log('first load')
-                that.facets = content.facets
-                getFacets(that.facets, that)
-                that.firstLoad = false
+            if(content.page === 0){
+                that.results = content
+                if(!!that.firstLoad){
+                    console.log('first load')
+                    that.facets = content.facets
+                    getFacets(that.facets, that)
+                    that.firstLoad = false
+                }
+            }
+            else{
+                that.results.page = content.page
+                for(let each of content.hits){
+                    that.results.hits.push(each)
+                }
+
             }
 
         });
@@ -131,7 +141,13 @@ export default {
             },
             filterExpanded: false,
             geo: null,
-            results: null
+            results: null,
+            payment_types: [
+                'Visa',
+                'MasterCard',
+                'AMEX',
+                'Discover'
+            ]
         }
     },
     computed : {
@@ -140,6 +156,12 @@ export default {
         },
         expandText(){
             return !!this.filterExpanded ? 'show less -' : 'show more +'
+        },
+        currentPage(){
+            return !!this.results ? this.results.page : null
+        },
+        pages(){
+            return !!this.results ? this.results.nbPages : null
         }
     },
     watch : {
@@ -158,11 +180,19 @@ export default {
                 this.activeFilters[facet] = value
                 algolia.helper.clearRefinements(facet)
 
-                if(facet !== 'stars_count'){
+                if(facet == 'food_type'){
                     console.log(facet, value)
                     algolia.helper.toggleRefinement(facet, value).search()
                 }
-                else{
+                if(facet == 'payment_options'){
+                    console.log(facet, value)
+                    if(value == 'Discover'){
+                        algolia.helper.toggleRefinement(facet, 'Diners Club')
+                        algolia.helper.toggleRefinement(facet, 'Carte Blanche')
+                    }
+                    algolia.helper.toggleRefinement(facet, value).search()
+                }
+                if(facet == 'stars_count'){
                     console.log('stars', parseFloat(value))
                     algolia.helper.addNumericRefinement('stars_count', '>=', parseFloat(value)).search()
                 }
@@ -173,6 +203,21 @@ export default {
         expandSelection(ref, event){
             $(this.$refs[ref]).toggleClass('expanded')
             this.filterExpanded = !this.filterExpanded
+        },
+        moreResults(){
+            let page = this.results.page
+            algolia.helper.setCurrentPage(page + 1).search()
+            console.log('ajax done', page)
+            setTimeout(()=>{
+                this.ajaxLoading = false
+            },1000)
+        },
+        scrollCheck(event){
+            if(event.target.scrollHeight - event.target.scrollTop < 600 && !this.ajaxLoading){
+                console.log('ajax')
+                this.ajaxLoading = true
+                this.moreResults()
+            }
         }
     }
 }
